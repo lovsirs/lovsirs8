@@ -1,0 +1,42 @@
+local P = game:GetService("Players")
+local RS = game:GetService("ReplicatedStorage")
+
+local LP = P.LocalPlayer
+local C = workspace.CurrentCamera
+
+local getRayDirections = require(RS:WaitForChild("Blaster"):WaitForChild("Utility"):WaitForChild("getRayDirections"))
+
+local function target()
+    local center = Vector2.new(C.ViewportSize.X * 0.5, C.ViewportSize.Y * 0.5)
+    local best, bestDist = nil, math.huge
+    for _, plr in ipairs(P:GetPlayers()) do
+        if plr ~= LP and plr.Character then
+            local hrp = plr.Character:FindFirstChild("HumanoidRootPart")
+            local hum = plr.Character:FindFirstChildOfClass("Humanoid")
+            if hrp and hum and hum.Health > 0 then
+                local sp, onScreen = C:WorldToViewportPoint(hrp.Position)
+                if onScreen then
+                    local d = (Vector2.new(sp.X, sp.Y) - center).Magnitude
+                    if d < bestDist then best, bestDist = plr, d end
+                end
+            end
+        end
+    end
+    if not best or not best.Character then return nil end
+    local hrp = best.Character:FindFirstChild("HumanoidRootPart")
+    return hrp and hrp.Position or nil
+end
+
+local Hkiz; Hkiz = hookfunction(getRayDirections, newcclosure(function(originCFrame, count, spread, seed)
+    local targetPos = target()
+    if targetPos then
+        local dir = targetPos - originCFrame.Position
+        if dir.Magnitude > 0.001 then
+            local unit = dir.Unit
+            local out = table.create(count)
+            for i = 1, count do out[i] = unit end
+            return out
+        end
+    end
+    return Hkiz(originCFrame, count, spread, seed)
+end))
